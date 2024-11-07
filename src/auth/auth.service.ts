@@ -79,7 +79,7 @@ export class AuthService {
       },
     });
 
-    const verificationLink = `${this.configService.get('BACKEND_URL')}/auth/verify/${token}`;
+    const verificationLink = `${this.configService.get('FRONTEND_URL')}/verify/${token}`;
 
     return {
       verificationToken: token,
