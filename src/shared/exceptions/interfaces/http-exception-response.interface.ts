@@ -1,4 +1,3 @@
-// src/shared/exceptions/interfaces/http-exception-response.interface.ts
 export interface IHttpExceptionResponse {
   timestamp: string;
   path: string;

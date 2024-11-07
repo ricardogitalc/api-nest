@@ -1,4 +1,3 @@
-// src/security/guards/throttler-behind-proxy.guard.ts
 import { Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 

@@ -6,31 +6,29 @@ import {
   Get,
   Request,
   Param,
-  BadRequestException,
   ForbiddenException,
   Patch,
   Delete,
   Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user-dto.interface';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { UpdateUserDto } from './dto/update-user-dto';
 import { AuthGuard } from '@nestjs/passport';
+import { CreateUserTypes } from './interfaces/auth.interface';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() userData: CreateUserDto) {
+  async register(@Body() userData: CreateUserTypes) {
     const result = await this.authService.startUserRegistration(userData);
     return {
       message: 'Verifique seu email para completar o cadastro',
       ...result,
     };
   }
-
   @Post('login')
   async sendMagicLink(@Body('email') email: string) {
     const result = await this.authService.createMagicLink(email);

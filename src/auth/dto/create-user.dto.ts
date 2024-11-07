@@ -1,4 +1,3 @@
-// src/auth/dto/create-user.dto.ts
 import {
   IsString,
   IsEmail,
@@ -24,7 +23,7 @@ export class CreateUserDto {
   email: string;
 
   @IsEmail({}, { message: 'Email de confirmação inválido' })
-  @Match('email', { message: 'Os emails não coincidem' })
+  @Match('email', { message: 'Os emails não são igual' })
   @IsNotEmpty({ message: 'A confirmação de email é obrigatória' })
   confirmEmail: string;
 

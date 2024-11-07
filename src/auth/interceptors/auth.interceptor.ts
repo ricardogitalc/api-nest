@@ -1,4 +1,3 @@
-// src/auth/interceptors/auth.interceptor.ts
 import {
   Injectable,
   NestInterceptor,
@@ -9,7 +8,7 @@ import {
 import { Observable, throwError, from } from 'rxjs'; // Adicionar import do from
 import { catchError, switchMap } from 'rxjs/operators';
 import { AuthService } from '../auth.service';
-import { Tokens } from '../interfaces/tokens.interface'; // Adicionar import da interface
+import { TokenTypes } from '../interfaces/auth.interface';
 
 @Injectable()
 export class AuthInterceptor implements NestInterceptor {
@@ -33,7 +32,7 @@ export class AuthInterceptor implements NestInterceptor {
 
           // Converter Promise em Observable usando from
           return from(this.authService.refreshAccessToken(refreshToken)).pipe(
-            switchMap((tokens: Tokens) => {
+            switchMap((tokens: TokenTypes) => {
               request.headers.authorization = `Bearer ${tokens.accessToken}`;
 
               // Reenviar requisição original com novo token

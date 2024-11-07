@@ -1,20 +1,18 @@
 import {
   Injectable,
-  Logger,
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { User, VerificationToken, RefreshToken, Prisma } from '@prisma/client';
-import { CreateUserDTO } from './dto/user-dto.interface';
+import { User } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
-import { UpdateUserDto } from './dto/update-user-dto.interface';
-import { Tokens } from './interfaces/tokens.interface';
+import { UpdateUserDto } from './dto/update-user-dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserTypes, TokenTypes } from './interfaces/auth.interface';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +24,7 @@ export class AuthService {
 
   async createMagicLink(
     email: string,
-  ): Promise<{ tokens: Tokens; magicLink: string }> {
+  ): Promise<{ tokens: TokenTypes; magicLink: string }> {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -42,7 +40,7 @@ export class AuthService {
   }
 
   async startUserRegistration(
-    userData: CreateUserDTO,
+    userData: CreateUserTypes,
   ): Promise<{ verificationToken: string; verificationLink: string }> {
     if (userData.email !== userData.confirmEmail) {
       throw new BadRequestException('Os emails não coincidem');
@@ -116,7 +114,7 @@ export class AuthService {
     return user;
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<Tokens> {
+  async refreshAccessToken(refreshToken: string): Promise<TokenTypes> {
     const tokenRecord = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
       include: { user: true },
@@ -157,7 +155,7 @@ export class AuthService {
     };
   }
 
-  async generateTokens(user: User): Promise<Tokens> {
+  async generateTokens(user: User): Promise<TokenTypes> {
     const payload = {
       data: this.encryptPayload({
         id: user.id,

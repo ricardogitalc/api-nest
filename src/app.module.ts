@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerBehindProxyGuard } from './security/guards/throttler-behind-proxy.guard';
+import { ThrottlerBehindProxyGuard } from './auth/guards/throttler-behind-proxy.guard';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
