@@ -172,7 +172,31 @@ export class AuthController {
 
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req) {
-    return this.authService.googleLogin(req.user);
+  async googleAuthRedirect(@Req() req, @Res() response: Response) {
+    try {
+      const { tokens } = await this.authService.googleLogin(req.user);
+
+      response.cookie('auth.accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+
+      response.cookie('auth.refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+
+      return response.redirect(
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+      );
+    } catch (error) {
+      return response.redirect(
+        `${process.env.FRONTEND_URL}/login?error=google-auth-failed`,
+      );
+    }
   }
 }
