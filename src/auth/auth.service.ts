@@ -267,10 +267,17 @@ export class AuthService {
   }
 
   async revokeRefreshToken(userId: string): Promise<void> {
-    // Substitua o Map.delete por uma operação do Prisma
-    await this.prisma.refreshToken.delete({
-      where: { userId },
-    });
+    try {
+      // Primeiro encontra todos os tokens do usuário
+      await this.prisma.refreshToken.deleteMany({
+        where: {
+          userId: userId,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao revogar refresh token:', error);
+      throw new Error('Erro ao fazer logout');
+    }
   }
 
   async createUser(createUserDto: CreateUserDto) {

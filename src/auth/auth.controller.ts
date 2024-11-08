@@ -103,8 +103,24 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Request() req) {
+  async logout(@Res({ passthrough: true }) response: Response, @Request() req) {
     await this.authService.revokeRefreshToken(req.user.id);
+
+    // Limpa os cookies na resposta
+    response.clearCookie('auth.accessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    response.clearCookie('auth.refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+
     return { message: 'Logout realizado com sucesso' };
   }
 
