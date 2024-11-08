@@ -77,7 +77,7 @@ export class AuthService {
       },
     });
 
-    const verificationLink = `${this.configService.get('FRONTEND_URL')}/verify/${token}`;
+    const verificationLink = `${this.configService.get('BACKEND_URL')}/verify/${token}`;
 
     return {
       verificationToken: token,
@@ -293,23 +293,24 @@ export class AuthService {
     email: string,
     firstName: string,
     lastName: string,
-  ): Promise<User> {
-    let user = await this.prisma.user.findUnique({
+    profilePicture: string,
+  ): Promise<any> {
+    const user = await this.prisma.user.upsert({
       where: { email },
+      update: {
+        firstName,
+        lastName,
+        profilePicture,
+        verified: true,
+      },
+      create: {
+        email,
+        firstName,
+        lastName,
+        profilePicture,
+        verified: true,
+      },
     });
-
-    if (!user) {
-      // Criar usuário se não existir
-      user = await this.prisma.user.create({
-        data: {
-          email,
-          firstName,
-          lastName,
-          verified: true, // Sinalize que o email foi verificado pelo Google
-        },
-      });
-    }
-
     return user;
   }
 

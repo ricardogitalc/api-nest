@@ -15,22 +15,33 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  async validate(profile: any): Promise<any> {
-    const { emails, name } = profile;
-    const email = emails[0].value;
-    const firstName = name.givenName;
-    const lastName = name.familyName;
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+    done: VerifyCallback,
+  ): Promise<any> {
+    try {
+      // Verificar se temos as informações necessárias
+      if (!profile || !profile.emails || !profile.name) {
+        throw new UnauthorizedException('Perfil do Google incompleto');
+      }
 
-    // Encontrar ou criar usuário
-    const user = await this.authService.validateGoogleUser(
-      email,
-      firstName,
-      lastName,
-    );
-    if (!user) {
-      throw new UnauthorizedException();
+      const email = profile.emails[0].value; // Correção do acesso ao email
+      const firstName = profile.name.givenName || '';
+      const lastName = profile.name.familyName || '';
+      const photoUrl = profile.photos?.[0]?.value || ''; // Extraindo URL da foto
+
+      const user = await this.authService.validateGoogleUser(
+        email,
+        firstName,
+        lastName,
+        photoUrl, // Adicionando a foto como novo parâmetro
+      );
+
+      done(null, user);
+    } catch (error) {
+      done(error, null);
     }
-
-    return user;
   }
 }

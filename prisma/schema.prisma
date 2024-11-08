@@ -8,16 +8,17 @@ generator client {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  firstName     String
-  lastName      String
-  email         String    @unique
-  whatsapp      String?
-  verified      Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String    @unique
+  whatsapp        String?
+  profilePicture  String?   // Confirmar que este campo está presente
+  verified        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   verificationToken VerificationToken?
-  refreshToken  RefreshToken?
+  refreshToken    RefreshToken?
 }
 
 model VerificationToken {
