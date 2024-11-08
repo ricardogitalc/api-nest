@@ -10,16 +10,25 @@ import {
   Patch,
   Delete,
   Req,
+  Query,
+  UnauthorizedException,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateUserTypes } from './interfaces/auth.interface';
+import { JwtService } from '@nestjs/jwt';
+import { JsonWebTokenError } from 'jsonwebtoken';
+import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly jwtService: JwtService, // Adicione esta injeção
+  ) {}
 
   @Post('register')
   async register(@Body() userData: CreateUserTypes) {
@@ -42,6 +51,49 @@ export class AuthController {
   async verifyEmail(@Param('token') token: string) {
     const user = await this.authService.verifyEmail(token);
     return { message: 'Email verificado com sucesso', user };
+  }
+
+  @Get('verify-login')
+  async verifyLoginToken(
+    @Query('token') token: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    try {
+      const decoded = await this.jwtService.verify(token);
+      const decryptedData = await this.authService.decryptPayload(decoded.data);
+      const userData = JSON.parse(decryptedData);
+
+      const user = await this.authService.getUserById(userData.id);
+      if (!user) {
+        throw new UnauthorizedException('Usuário não encontrado');
+      }
+
+      const tokens = await this.authService.generateTokens(user);
+
+      // Ajustar os cookies para serem acessíveis
+      response.cookie('auth.accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 15 * 60 * 1000, // 15 minutos
+      });
+
+      response.cookie('auth.refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+      });
+
+      return {
+        message: 'Login realizado com sucesso',
+        user,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
   }
 
   @Post('refresh')

@@ -22,6 +22,10 @@ export class AuthService {
     private prisma: PrismaService,
   ) {}
 
+  private readonly encryptionKey =
+    process.env.ENCRYPTION_KEY || 'chave-secreta-padrao-32-caracteres';
+  private readonly algorithm = 'aes-256-cbc';
+
   async createMagicLink(
     email: string,
   ): Promise<{ tokens: TokenTypes; magicLink: string }> {
@@ -34,7 +38,7 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user);
-    const magicLink = `${this.configService.get('BACKEND_URL')}/auth?token=${tokens.accessToken}`;
+    const magicLink = `${this.configService.get('FRONTEND_URL')}/verify-login?token=${tokens.accessToken}`;
 
     return { tokens, magicLink };
   }
@@ -187,15 +191,9 @@ export class AuthService {
   }
 
   async getUserById(id: string): Promise<User> {
-    const user = await this.prisma.user.findUnique({
+    return this.prisma.user.findUnique({
       where: { id },
     });
-
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    return user;
   }
 
   private encryptPayload(payload: any): string {
@@ -220,8 +218,39 @@ export class AuthService {
     });
   }
 
-  async validateToken(token: string) {
-    return this.jwtService.verify(token);
+  async decryptPayload(encryptedData: string): Promise<string> {
+    try {
+      const { iv, encrypted, authTag } = JSON.parse(encryptedData);
+
+      const key = crypto.scryptSync(
+        this.configService.get('JWT_SECRET'),
+        'salt',
+        32,
+      );
+
+      const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        key,
+        Buffer.from(iv, 'hex'),
+      );
+
+      decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+
+      return decrypted;
+    } catch (error) {
+      throw new UnauthorizedException('Erro ao descriptografar payload');
+    }
+  }
+
+  async validateToken(token: string): Promise<any> {
+    try {
+      return this.jwtService.verify(token);
+    } catch (error) {
+      throw new UnauthorizedException('Token inválido ou expirado');
+    }
   }
 
   async updateUser(id: string, updateData: UpdateUserDto): Promise<User> {
@@ -318,16 +347,18 @@ export class AuthService {
     userId: string,
     refreshToken: string,
   ): Promise<void> {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+
     await this.prisma.refreshToken.upsert({
       where: { userId },
       update: {
         token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
+        expiresAt,
       },
       create: {
         userId,
         token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias
+        expiresAt,
       },
     });
   }
