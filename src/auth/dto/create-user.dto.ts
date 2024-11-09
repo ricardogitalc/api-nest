@@ -23,7 +23,7 @@ export class CreateUserDto {
   email: string;
 
   @IsEmail({}, { message: 'Email de confirmação inválido' })
-  @Match('email', { message: 'Os emails não são igual' })
+  @Match('email', { message: 'Os emails não coincidem' })
   @IsNotEmpty({ message: 'A confirmação de email é obrigatória' })
   confirmEmail: string;
 

@@ -25,6 +25,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { JsonWebTokenError } from 'jsonwebtoken';
 import { Response } from 'express';
+import { CreateUserDto } from './dto/create-user.dto';
+import { LoginEmailDto } from './dto/login-email.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -34,16 +36,17 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  async register(@Body() userData: CreateUserTypes) {
+  async register(@Body() userData: CreateUserDto) {
     const result = await this.authService.startUserRegistration(userData);
     return {
       message: 'Verifique seu email para completar o cadastro',
       ...result,
     };
   }
+
   @Post('login')
-  async sendMagicLink(@Body('email') email: string) {
-    const result = await this.authService.createMagicLink(email);
+  async sendMagicLink(@Body() loginData: LoginEmailDto) {
+    const result = await this.authService.createMagicLink(loginData);
     return {
       message: 'Magic link gerado com sucesso!',
       ...result,

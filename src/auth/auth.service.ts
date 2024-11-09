@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
+  ValidationError,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +18,7 @@ import {
   TokenTypes,
   GoogleLoginResponse,
 } from './interfaces/auth.interface';
+import { LoginEmailDto } from './dto/login-email.dto';
 
 @Injectable()
 export class AuthService {
@@ -31,10 +33,10 @@ export class AuthService {
   private readonly algorithm = 'aes-256-cbc';
 
   async createMagicLink(
-    email: string,
+    loginData: LoginEmailDto,
   ): Promise<{ tokens: TokenTypes; magicLink: string }> {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: loginData.email },
     });
 
     if (!user) {
@@ -48,7 +50,7 @@ export class AuthService {
   }
 
   async startUserRegistration(
-    userData: CreateUserTypes,
+    userData: CreateUserDto,
   ): Promise<{ verificationToken: string; verificationLink: string }> {
     if (userData.email !== userData.confirmEmail) {
       throw new BadRequestException('Os emails não coincidem');
@@ -285,8 +287,26 @@ export class AuthService {
   }
 
   async createUser(createUserDto: CreateUserDto) {
+    // Validar se os emails coincidem
+    if (createUserDto.email !== createUserDto.confirmEmail) {
+      throw new BadRequestException('Os emails não coincidem');
+    }
+
+    // Verificar se o usuário já existe
+    const existingUser = await this.findByEmail(createUserDto.email);
+    if (existingUser) {
+      throw new BadRequestException('Email já cadastrado');
+    }
+
+    // Criar o usuário com os dados validados
     return this.prisma.user.create({
-      data: createUserDto,
+      data: {
+        email: createUserDto.email,
+        firstName: createUserDto.firstName,
+        lastName: createUserDto.lastName,
+        whatsapp: createUserDto.whatsapp,
+        verified: false,
+      },
     });
   }
 
@@ -307,9 +327,19 @@ export class AuthService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    // Verificar se o usuário existe
+    const existingUser = await this.findOne(id);
+    if (!existingUser) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
     return this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data: {
+        firstName: updateUserDto.firstName,
+        lastName: updateUserDto.lastName,
+        whatsapp: updateUserDto.whatsapp,
+      },
     });
   }
 
@@ -320,25 +350,35 @@ export class AuthService {
   }
 
   async googleLogin(googleUser: any): Promise<GoogleLoginResponse> {
-    // Assumindo que você já tem a lógica para criar/recuperar o usuário
-    const user = {
-      id: googleUser.id,
-      email: googleUser.email,
-      firstName: googleUser.firstName,
-      lastName: googleUser.lastName,
-      whatsapp: googleUser.whatsapp || '',
-      profilePicture: googleUser.picture || '',
-      verified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const createUserDto = new CreateUserDto();
+    createUserDto.email = googleUser.email;
+    createUserDto.firstName = googleUser.firstName;
+    createUserDto.lastName = googleUser.lastName;
+    createUserDto.whatsapp = googleUser.whatsapp || '';
+    createUserDto.confirmEmail = googleUser.email; // Google já valida o email
+
+    // O usuário do Google já é considerado verificado
+    const user = await this.prisma.user.upsert({
+      where: { email: createUserDto.email },
+      update: {
+        firstName: createUserDto.firstName,
+        lastName: createUserDto.lastName,
+        whatsapp: createUserDto.whatsapp,
+        verified: true,
+        profilePicture: googleUser.picture || '',
+      },
+      create: {
+        email: createUserDto.email,
+        firstName: createUserDto.firstName,
+        lastName: createUserDto.lastName,
+        whatsapp: createUserDto.whatsapp,
+        verified: true,
+        profilePicture: googleUser.picture || '',
+      },
+    });
 
     const tokens = await this.generateTokens(user);
-
-    return {
-      user,
-      tokens,
-    };
+    return { user, tokens };
   }
 
   async validateGoogleUser(
