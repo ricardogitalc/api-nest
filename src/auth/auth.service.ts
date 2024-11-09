@@ -355,9 +355,8 @@ export class AuthService {
     createUserDto.firstName = googleUser.firstName;
     createUserDto.lastName = googleUser.lastName;
     createUserDto.whatsapp = googleUser.whatsapp || '';
-    createUserDto.confirmEmail = googleUser.email; // Google já valida o email
+    createUserDto.confirmEmail = googleUser.email;
 
-    // O usuário do Google já é considerado verificado
     const user = await this.prisma.user.upsert({
       where: { email: createUserDto.email },
       update: {
@@ -365,7 +364,7 @@ export class AuthService {
         lastName: createUserDto.lastName,
         whatsapp: createUserDto.whatsapp,
         verified: true,
-        profilePicture: googleUser.picture || '',
+        profilePicture: googleUser.picture, // Usar a foto do objeto googleUser
       },
       create: {
         email: createUserDto.email,
@@ -373,7 +372,7 @@ export class AuthService {
         lastName: createUserDto.lastName,
         whatsapp: createUserDto.whatsapp,
         verified: true,
-        profilePicture: googleUser.picture || '',
+        profilePicture: googleUser.picture, // Usar a foto do objeto googleUser
       },
     });
 
@@ -385,21 +384,21 @@ export class AuthService {
     email: string,
     firstName: string,
     lastName: string,
-    profilePicture: string,
+    profilePicture: string, // Garantir que recebe a URL da foto
   ): Promise<any> {
     const user = await this.prisma.user.upsert({
       where: { email },
       update: {
         firstName,
         lastName,
-        profilePicture,
+        profilePicture, // Salvar a URL da foto
         verified: true,
       },
       create: {
         email,
         firstName,
         lastName,
-        profilePicture,
+        profilePicture, // Salvar a URL da foto na criação
         verified: true,
       },
     });

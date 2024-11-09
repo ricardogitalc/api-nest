@@ -22,24 +22,27 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     done: VerifyCallback,
   ): Promise<any> {
     try {
-      // Verificar se temos as informações necessárias
       if (!profile || !profile.emails || !profile.name) {
         throw new UnauthorizedException('Perfil do Google incompleto');
       }
 
-      const email = profile.emails[0].value; // Correção do acesso ao email
+      const email = profile.emails[0].value;
       const firstName = profile.name.givenName || '';
       const lastName = profile.name.familyName || '';
-      const photoUrl = profile.photos?.[0]?.value || ''; // Extraindo URL da foto
+      const photoUrl = profile.photos?.[0]?.value || '';
 
+      // Garantir que estamos passando a URL da foto para o serviço
       const user = await this.authService.validateGoogleUser(
         email,
         firstName,
         lastName,
-        photoUrl, // Adicionando a foto como novo parâmetro
+        photoUrl,
       );
 
-      done(null, user);
+      return {
+        ...user,
+        picture: photoUrl, // Adicionar a foto ao objeto retornado
+      };
     } catch (error) {
       done(error, null);
     }
