@@ -34,8 +34,17 @@ export interface GoogleLoginResponse {
     createdAt: Date;
     updatedAt: Date;
   };
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-  };
+  tokens: TokenTypes;
+}
+
+export interface GoogleUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  whatsapp: string;
+  profilePicture: string;
+  verified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }

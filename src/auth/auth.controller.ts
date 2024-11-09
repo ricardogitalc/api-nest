@@ -18,7 +18,10 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { AuthGuard } from '@nestjs/passport';
-import { CreateUserTypes } from './interfaces/auth.interface';
+import {
+  CreateUserTypes,
+  GoogleLoginResponse,
+} from './interfaces/auth.interface'; // Adicionada importação aqui
 import { JwtService } from '@nestjs/jwt';
 import { JsonWebTokenError } from 'jsonwebtoken';
 import { Response } from 'express';
@@ -166,15 +169,18 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req) {
-    // Inicia a autenticação com o Google
+  async googleAuth() {
+    // Inicia autenticação Google
   }
 
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() response: Response) {
     try {
-      const { tokens } = await this.authService.googleLogin(req.user);
+      const result: GoogleLoginResponse = await this.authService.googleLogin(
+        req.user,
+      );
+      const { user, tokens } = result;
 
       response.cookie('auth.accessToken', tokens.accessToken, {
         httpOnly: true,

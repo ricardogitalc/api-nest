@@ -12,7 +12,11 @@ import * as crypto from 'crypto';
 import { UpdateUserDto } from './dto/update-user-dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { CreateUserTypes, TokenTypes } from './interfaces/auth.interface';
+import {
+  CreateUserTypes,
+  TokenTypes,
+  GoogleLoginResponse,
+} from './interfaces/auth.interface';
 
 @Injectable()
 export class AuthService {
@@ -315,12 +319,24 @@ export class AuthService {
     });
   }
 
-  async googleLogin(user: User) {
+  async googleLogin(googleUser: any): Promise<GoogleLoginResponse> {
+    // Assumindo que você já tem a lógica para criar/recuperar o usuário
+    const user = {
+      id: googleUser.id,
+      email: googleUser.email,
+      firstName: googleUser.firstName,
+      lastName: googleUser.lastName,
+      whatsapp: googleUser.whatsapp || '',
+      profilePicture: googleUser.picture || '',
+      verified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
     const tokens = await this.generateTokens(user);
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      message: 'Usuário autenticado com sucesso',
+      user,
       tokens,
     };
   }
