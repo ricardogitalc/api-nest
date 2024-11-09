@@ -384,25 +384,34 @@ export class AuthService {
     email: string,
     firstName: string,
     lastName: string,
-    profilePicture: string, // Garantir que recebe a URL da foto
+    profilePicture: string,
   ): Promise<any> {
-    const user = await this.prisma.user.upsert({
+    // Encontrar usuário existente
+    const existingUser = await this.prisma.user.findUnique({
       where: { email },
-      update: {
-        firstName,
-        lastName,
-        profilePicture, // Salvar a URL da foto
-        verified: true,
-      },
-      create: {
+    });
+
+    // Se o usuário já existe, preservar campos existentes
+    if (existingUser) {
+      return this.prisma.user.update({
+        where: { email },
+        data: {
+          profilePicture, // Atualizar apenas a foto do perfil do Google
+          verified: true,
+        },
+      });
+    }
+
+    // Se é um novo usuário, criar com todos os campos
+    return this.prisma.user.create({
+      data: {
         email,
         firstName,
         lastName,
-        profilePicture, // Salvar a URL da foto na criação
+        profilePicture,
         verified: true,
       },
     });
-    return user;
   }
 
   async updateRefreshToken(
