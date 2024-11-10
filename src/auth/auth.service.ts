@@ -125,44 +125,26 @@ export class AuthService {
   }
 
   async refreshAccessToken(refreshToken: string): Promise<TokenTypes> {
-    const tokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-      include: { user: true },
-    });
+    try {
+      const tokenRecord = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        include: { user: true },
+      });
 
-    if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
-      throw new UnauthorizedException('Refresh token inválido ou expirado');
+      if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+        throw new UnauthorizedException('Refresh token inválido ou expirado');
+      }
+
+      const user = tokenRecord.user;
+      const newTokens = await this.generateTokens(user);
+
+      // Atualiza o refresh token no banco
+      await this.updateRefreshToken(user.id, newTokens.refreshToken);
+
+      return newTokens;
+    } catch (error) {
+      throw new UnauthorizedException('Falha ao atualizar o token');
     }
-
-    const user = tokenRecord.user;
-    const newToken = uuidv4();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
-
-    // Atualizar refresh token
-    await this.prisma.refreshToken.update({
-      where: { userId: user.id },
-      data: {
-        token: newToken,
-        expiresAt,
-      },
-    });
-
-    const payload = {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      whatsapp: user.whatsapp,
-      verified: user.verified,
-    };
-
-    const encryptedPayload = this.encryptPayload(payload);
-    const newAccessToken = this.jwtService.sign({ data: encryptedPayload });
-
-    return {
-      accessToken: newAccessToken,
-      refreshToken: newToken,
-    };
   }
 
   async generateTokens(user: User): Promise<TokenTypes> {
@@ -172,17 +154,15 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        // Outros campos, se necessário
       }),
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '15m',
+      expiresIn: '30s', // Alterado para 30 segundos para teste
     });
 
     const refreshToken = uuidv4();
-
-    // Salvar o refreshToken no banco de dados...
+    await this.updateRefreshToken(user.id, refreshToken);
 
     return {
       accessToken,
@@ -418,7 +398,7 @@ export class AuthService {
     userId: string,
     refreshToken: string,
   ): Promise<void> {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // Alterado para 2 minutos para teste
 
     await this.prisma.refreshToken.upsert({
       where: { userId },

@@ -82,7 +82,7 @@ export class AuthController {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 15 * 60 * 1000, // 15 minutos
+        maxAge: 30 * 1000, // Alterado para 30 segundos
       });
 
       response.cookie('auth.refreshToken', tokens.refreshToken, {
@@ -90,7 +90,7 @@ export class AuthController {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
+        maxAge: 2 * 60 * 1000, // Alterado para 2 minutos
       });
 
       return {
@@ -103,8 +103,35 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refreshToken(@Body() body: { refreshToken: string }) {
-    return this.authService.refreshAccessToken(body.refreshToken);
+  async refreshToken(
+    @Body() body: { refreshToken: string },
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    try {
+      const tokens = await this.authService.refreshAccessToken(
+        body.refreshToken,
+      );
+
+      response.cookie('auth.accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 30 * 1000, // Alterado para 30 segundos
+      });
+
+      response.cookie('auth.refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 2 * 60 * 1000, // Alterado para 2 minutos
+      });
+
+      return tokens;
+    } catch (error) {
+      throw new UnauthorizedException('Falha ao atualizar o token');
+    }
   }
 
   @UseGuards(JwtAuthGuard)
